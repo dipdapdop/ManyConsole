@@ -20,7 +20,9 @@ namespace ManyConsole
             TextWriter outputStream = null,
             TextReader inputStream = null,
             OptionSet options = null)
+#pragma warning disable CS0618 // Type or member is obsolete
             : this(() => new ConsoleCommand[0], outputStream, inputStream, null, options)
+#pragma warning restore CS0618 // Type or member is obsolete
         {
             _commandSource = () => new ConsoleCommand[0];
         }
@@ -56,7 +58,8 @@ namespace ManyConsole
         public virtual void WritePromptForCommands()
         {
             if (!string.IsNullOrEmpty(_continuePrompt))
-                _outputStream.WriteLine(_continuePrompt);        }
+                _outputStream.WriteLine(_continuePrompt);
+        }
 
         /// <summary>
         /// Runs to get the next available commands
@@ -81,7 +84,7 @@ namespace ManyConsole
             bool haveError = false;
             string input = _inputStream.ReadLine();
 
-            while (!input.Trim().Equals("x"))
+            while (input != null && !input.Trim().Equals("x"))
             {
                 if (input.Trim().Equals("?"))
                 {
@@ -105,10 +108,10 @@ namespace ManyConsole
                 {
                     _outputStream.WriteLine();
 
-                    if (!isInputRedirected)
-                    {
+                    //if (!isInputRedirected)
+                    //{
                         WritePromptForCommands();
-                    }
+                    //}
                 }
 
                 input = _inputStream.ReadLine();
