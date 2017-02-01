@@ -17,7 +17,7 @@ namespace SampleConsole
 
         public override void WritePromptForCommands()
         {
-            Console.WriteLine("You have seen this console {0} times.", Count++);
+            Console.WriteLine($"You have seen this console {this.Count++} times.");
 
             base.WritePromptForCommands();
         }
