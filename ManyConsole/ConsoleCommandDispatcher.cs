@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -21,7 +20,8 @@ namespace ManyConsole
 
             TextWriter console = consoleOut;
 
-            foreach (var command in commands)
+            IEnumerable<ConsoleCommand> consoleCommands = commands as ConsoleCommand[] ?? commands.ToArray();
+            foreach (var command in consoleCommands)
             {
                 ValidateConsoleCommand(command);
             }
@@ -30,11 +30,11 @@ namespace ManyConsole
             {
                 List<string> remainingArguments;
 
-                if (commands.Count() == 1)
+                if (consoleCommands.Count() == 1)
                 {
-                    selectedCommand = commands.First();
+                    selectedCommand = consoleCommands.First();
 
-                    if (arguments.Count() > 0 && arguments.First().ToLower() == selectedCommand.Command.ToLower())
+                    if (arguments.Any() && (arguments.First().ToLower() == selectedCommand.Command.ToLower()))
                     {
                         remainingArguments = selectedCommand.GetActualOptions().Parse(arguments.Skip(1));
                     }
@@ -45,22 +45,22 @@ namespace ManyConsole
                 }
                 else
                 {
-                    if (arguments.Count() < 1)
+                    if (!arguments.Any())
                         throw new ConsoleHelpAsException("No arguments specified.");
 
                     if (arguments[0].Equals("help", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        selectedCommand = GetMatchingCommand(commands, arguments.Skip(1).FirstOrDefault());
+                        selectedCommand = GetMatchingCommand(consoleCommands, arguments.Skip(1).FirstOrDefault());
 
                         if (selectedCommand == null)
-                            ConsoleHelp.ShowSummaryOfCommands(commands, console);
+                            ConsoleHelp.ShowSummaryOfCommands(consoleCommands, console);
                         else
                             ConsoleHelp.ShowCommandHelp(selectedCommand, console, skipExeInExpectedUsage);
 
                         return -1;
                     }
 
-                    selectedCommand = GetMatchingCommand(commands, arguments.First());
+                    selectedCommand = GetMatchingCommand(consoleCommands, arguments.First());
 
                     if (selectedCommand == null)
                         throw new ConsoleHelpAsException("Command name not recognized.");
@@ -83,11 +83,11 @@ namespace ManyConsole
             }
             catch (ConsoleHelpAsException e)
             {
-                return DealWithException(e, console, skipExeInExpectedUsage, selectedCommand, commands);
+                return DealWithException(e, console, skipExeInExpectedUsage, selectedCommand, consoleCommands);
             }
             catch (NDesk.Options.OptionException e)
             {
-                return DealWithException(e, console, skipExeInExpectedUsage, selectedCommand, commands);
+                return DealWithException(e, console, skipExeInExpectedUsage, selectedCommand, consoleCommands);
             }
         }
 
@@ -116,9 +116,8 @@ namespace ManyConsole
         {
             if (string.IsNullOrEmpty(command.Command))
             {
-                throw new InvalidOperationException(String.Format(
-                    "Command {0} did not call IsCommand in its constructor to indicate its name and description.",
-                    command.GetType().Name));
+                throw new InvalidOperationException(
+                    $"Command {command.GetType().Name} did not call IsCommand in its constructor to indicate its name and description.");
             }
         }
 
@@ -132,7 +131,7 @@ namespace ManyConsole
         public static IEnumerable<ConsoleCommand> FindCommandsInSameAssemblyAs(Type typeInSameAssembly)
         {
             if (typeInSameAssembly == null)
-                throw new ArgumentNullException("typeInSameAssembly");
+                throw new ArgumentNullException(nameof(typeInSameAssembly));
 
             return FindCommandsInAssembly(typeInSameAssembly.Assembly);
         }
@@ -145,7 +144,7 @@ namespace ManyConsole
         public static IEnumerable<ConsoleCommand> FindCommandsInAssembly(Assembly assembly)
         {
             if (assembly == null)
-                throw new ArgumentNullException("assembly");
+                throw new ArgumentNullException(nameof(assembly));
 
             var commandTypes = assembly.GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(ConsoleCommand)))
